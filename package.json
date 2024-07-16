@@ -15,10 +15,13 @@
     "@mui/icons-material": "^5.16.2",
     "@mui/material": "^5.16.2",
     "@mui/styled-engine-sc": "^6.0.0-alpha.18",
+    "axios": "^1.7.2",
+    "firebase": "^10.12.3",
     "next": "14.2.5",
     "react": "^18",
     "react-dom": "^18",
     "react-icons": "^5.2.1",
+    "react-keyboard-event-handler": "^1.5.4",
     "react-notifications": "^1.7.4",
     "styled-components": "^6.1.11"
   },

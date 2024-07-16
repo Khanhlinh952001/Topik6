@@ -1,112 +1,239 @@
 'use client'
-/// src/Game.js
 import React, { useState, useEffect } from 'react';
-import vocabulary from '../../components/vocabulary'; // Import danh sách từ vựng
-
+import useFirebaseData from '@/app/hooks/useFirebaseData';
+import { IoMdAddCircleOutline } from "react-icons/io";
+import Link from 'next/link';
 const Game = () => {
-  const [currentWord, setCurrentWord] = useState('');
-  const [usedWords, setUsedWords] = useState([]);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [aiWord, setAIWord] = useState('');
-  const [playerScore, setPlayerScore] = useState(0);
-  const [aiScore, setAiScore] = useState(0);
+  const { data } = useFirebaseData();
+  const vocabulary = data || []; // Ensure vocabulary is initialized with data or an empty array
+
+  const [currentWordObj, setCurrentWordObj] = useState({});
+  const [inputText, setInputText] = useState('');
+  const [message, setMessage] = useState('');
+  const [score, setScore] = useState(0);
+  const [wordList, setWordList] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  const [win, setWin] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(15);
 
   useEffect(() => {
-    startGame();
-  }, []);
+    if (vocabulary.length > 0) {
+      const initialWord = getRandomWord();
+      setCurrentWordObj(initialWord);
+      setWordList([initialWord]);
+    }
+  }, [vocabulary]);
 
-  const startGame = () => {
+  useEffect(() => {
+    let timer;
+    if (timeLeft > 0 && !isLoading && !gameOver) {
+      timer = setTimeout(() => {
+        setTimeLeft((prevTime) => prevTime - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && !isLoading && !gameOver) {
+      handleTimeout();
+    }
+
+    return () => clearTimeout(timer);
+  }, [timeLeft, isLoading, gameOver]);
+
+  const getRandomWord = () => {
     const randomIndex = Math.floor(Math.random() * vocabulary.length);
-    const initialWord = vocabulary[randomIndex].word;
-    setCurrentWord(initialWord);
-    setUsedWords([initialWord]);
-    setAIWord('');
-    setErrorMessage('');
-    setPlayerScore(0);
-    setAiScore(0);
-    setGameOver(false);
+    return vocabulary[randomIndex];
   };
 
-  const getLastChar = (word) => {
-    return word.charAt(word.length - 1);
+  const handleInputChange = (e) => {
+    setInputText(e.target.value);
   };
 
-  const runAI = () => {
-    const unusedWords = vocabulary.filter(word => !usedWords.includes(word.word));
-    let aiNextWord = '';
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setTimeLeft(10);
 
-    for (let word of unusedWords) {
-      if (word.word.charAt(0) === getLastChar(currentWord)) {
-        aiNextWord = word.word;
-        break;
-      }
-    }
-
-    if (!aiNextWord) {
-      setAIWord('');
-      setErrorMessage('AI không thể tiếp tục, AI thua cuộc!');
-      setGameOver(true);
-      return;
-    }
-
-    setAIWord(aiNextWord);
-    setUsedWords([...usedWords, aiNextWord]);
-    setAiScore(aiScore + 1);
-  };
-
-  const handlePlayerWord = (playerWord) => {
     if (gameOver) {
-      setErrorMessage('Trò chơi đã kết thúc, hãy bắt đầu lại!');
-      return;
+      setMessage('Hết giờ! Bắt đầu lượt mới...');
+      return startNewRound();
     }
 
-    const lastChar = getLastChar(currentWord);
-    if (playerWord.charAt(0) !== lastChar) {
-      setErrorMessage(`Từ "${playerWord}" phải bắt đầu bằng chữ cái cuối cùng của từ "${currentWord}".`);
-      return;
-    }
+    const playerWord = inputText.trim();
+    if (playerWord) {
+      const lastLetterCurrent = getLastLetter(currentWordObj.word);
+      const firstLetterInput = getFirstLetter(playerWord);
 
-    if (usedWords.includes(playerWord)) {
-      setErrorMessage(`Từ "${playerWord}" đã được sử dụng.`);
-      return;
-    }
+      if (firstLetterInput === lastLetterCurrent) {
+        setMessage('Chính xác!');
+        setScore(score + 2);
 
-    setCurrentWord(playerWord);
-    setUsedWords([...usedWords, playerWord]);
-    setErrorMessage('');
+        const playerWordObj = { word: playerWord, meaning: getMeaning(playerWord) };
+        setWordList([...wordList, playerWordObj]);
+        setCurrentWordObj(playerWordObj);
 
-    setPlayerScore(playerScore + 1);
-  };
+        setIsLoading(true);
+        setTimeout(() => {
+          const aiWordObj = getAITurn(playerWord);
+          if (aiWordObj) {
+            setWordList((prevList) => [...prevList, aiWordObj]);
+            setCurrentWordObj(aiWordObj);
+            setMessage('');
+          } else {
+            setMessage('AI không tìm thấy từ phù hợp!');
+            setWin(true);
+          }
+          setIsLoading(false);
+        }, 1000);
 
-  useEffect(() => {
-    if (currentWord !== '') {
-      runAI(); // Chạy AI sau khi người chơi nhập từ hợp lệ
-    }
-  }, [currentWord]);
-
-  useEffect(() => {
-    if (gameOver) {
-      if (playerScore > aiScore) {
-        setErrorMessage('Chúc mừng, bạn đã thắng!');
-      } else if (aiScore > playerScore) {
-        setErrorMessage('Bạn đã thua, hãy thử lại!');
       } else {
-        setErrorMessage('Trận đấu kết thúc với kết quả hòa nhau!');
+        setMessage(`Sai rồi! Hãy nhập từ bắt đầu bằng chữ "${lastLetterCurrent}"`);
       }
+    } else {
+      setMessage('Hãy nhập ít nhất hai từ!');
     }
-  }, [gameOver, playerScore, aiScore]);
+
+    setInputText('');
+  };
+
+  const handleTimeout = () => {
+    setMessage('Hết giờ! Bạn đã thua cuộc.');
+    setGameOver(true);
+  };
+
+  const getLastLetter = (word) => {
+    return word.slice(-1);
+  };
+
+  const getFirstLetter = (word) => {
+    return word[0];
+  };
+
+  const getAITurn = (currentWord) => {
+    const possibleWords = vocabulary.filter((entry) => {
+      const lastLetterCurrent = getLastLetter(currentWord);
+      const firstLetterNext = getFirstLetter(entry.word);
+      return lastLetterCurrent === firstLetterNext;
+    });
+
+    if (possibleWords.length > 0) {
+      const randomIndex = Math.floor(Math.random() * possibleWords.length);
+      const aiWordObj = { ...possibleWords[randomIndex], meaning: possibleWords[randomIndex].meaning };
+      return aiWordObj;
+    }
+
+    return null;
+  };
+
+  const getMeaning = (word) => {
+    const foundWord = vocabulary.find((entry) => entry.word === word);
+    return foundWord ? foundWord.meaning : '';
+  };
+
+  const startNewRound = () => {
+    setGameOver(false);
+    setCurrentWordObj(getRandomWord());
+    setWordList([]);
+    setScore(0);
+    setTimeLeft(10);
+  };
+
+  if (!currentWordObj.word) {
+    return (
+      <div className="h-screen bg-gradient-to-r from-pink-500 to-violet-500 flex justify-center items-center">
+        <div className="bg-white p-8 rounded-lg text-center">
+          <div className="relative flex justify-center items-center">
+            <div className="absolute animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-purple-500"></div>
+            <img src="https://www.svgrepo.com/show/509001/avatar-thinking-9.svg" className="rounded-full h-28 w-28" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (win) {
+    return (
+      <div className="h-screen bg-gradient-to-r from-pink-500 to-violet-500 flex justify-center items-center">
+        <div className="bg-white p-8 rounded-lg text-center">
+          <h1 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">Bạn Đã Chiến Thắng </h1>
+          <h1 className="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">{score}</h1>
+          {gameOver && (
+            <button className="bg-red-500 text-white px-4 py-2 rounded-md mt-4" onClick={startNewRound}>
+              Bắt đầu lại
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (gameOver) {
+    return (
+      <div className="h-screen bg-gradient-to-r from-pink-500 to-violet-500 flex justify-center items-center">
+        <div className="bg-white p-8 rounded-lg text-center">
+          <h1 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">Bạn Đã Thua </h1>
+          <h1 className="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">{score}</h1>
+          {gameOver && (
+            <button className="bg-red-500 text-white px-4 py-2 rounded-md mt-4" onClick={startNewRound}>
+              Bắt đầu lại
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h1>Trò chơi nối từ tiếng Hàn</h1>
-      <p>Từ hiện tại: {currentWord}</p>
-      <p>AI đưa ra từ tiếp theo: {aiWord}</p>
-      <p>Điểm của bạn: {playerScore}</p>
-      <p>Điểm của AI: {aiScore}</p>
-      <p>{errorMessage}</p>
-      <input type="text" onChange={(e) => handlePlayerWord(e.target.value)} />
-      <button onClick={startGame}>Bắt đầu lại</button>
+    <div className="h-screen bg-gradient-to-r from-pink-500 to-violet-500 flex justify-center items-center">
+     <div className='fixed bottom-10 z-50 right-10'>
+      <Link href={'/pages/ConnectWord/addWord'}>
+     < IoMdAddCircleOutline className='text-5xl bg-blue-500 p-2 rounded-full'/>
+      </Link>
+     </div>
+      <div className="bg-white p-8 rounded-lg text-center">
+        <h1 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">Game Nối Từ Tiếng Hàn</h1>
+        <div className="text-gray-800 text-xl w-full flex justify-center">
+          <p className="bg-green-500  text-white px-2 py-1 rounded-full">{timeLeft}s</p>
+        </div>
+        {isLoading ? (
+          <p className="text-gray-500 mt-2 ">AI đang suy nghĩ...</p>
+        ) : (
+          <p className="text-gray-600 mb-4">
+            Từ hiện tại: {currentWordObj.word} ({getMeaning(currentWordObj.word)})
+          </p>
+        )}
+        <h1 className="text-gray-800 "> Bắt đầu bằng từ : {currentWordObj.word.slice(-1)}</h1>
+
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            value={inputText}
+            onChange={handleInputChange}
+            className="border border-gray-300 px-3 py-2 text-gray-800 rounded-md mr-2"
+          />
+          <button
+            type="submit"
+            className={`bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 ${gameOver ? 'bg-slate-800 text-black hover:bg-slate-800' : ''}`}
+            disabled={isLoading || gameOver}
+          >
+            Đồng ý
+          </button>
+        </form>
+        {message && <p className="text-red-500 mt-2">{message}</p>}
+        <p className="text-green-500 mt-4">Điểm số: {score}</p>
+        <div className="mt-4">
+          <h2 className="text-xl font-bold mb-2">Danh sách các từ đã nối:</h2>
+          <ul className="list-disc list-inside">
+            {wordList.map((wordObj, index) => (
+              <li key={index} className="text-gray-700">
+                {wordObj.word} ({getMeaning(wordObj.word)})
+              </li>
+            ))}
+          </ul>
+        </div>
+        {gameOver && (
+          <button className="bg-red-500 text-white px-4 py-2 rounded-md mt-4" onClick={startNewRound}>
+            Bắt đầu lại
+          </button>
+        )}
+      </div>
     </div>
   );
 };
