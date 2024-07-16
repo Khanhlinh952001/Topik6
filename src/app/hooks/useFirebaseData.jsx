@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getDatabase, ref, onValue } from 'firebase/database';
-import { database } from '@/firebase'; // Thay thế bằng cấu hình Firebase của bạn
+import { database } from '@/app/firebase/firebase'; // Thay thế bằng cấu hình Firebase của bạn
 
 const useFirebaseData = (path) => {
   const [loading, setLoading] = useState(true);

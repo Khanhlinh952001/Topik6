@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import useFirebaseData from '@/app/hooks/useFirebaseData';
 import { IoMdAddCircleOutline } from "react-icons/io";
 import Link from 'next/link';
+import AddWord from '../AddWord/page';
 const Game = () => {
   const { data } = useFirebaseData();
   const vocabulary = data || []; // Ensure vocabulary is initialized with data or an empty array
@@ -183,8 +184,11 @@ const Game = () => {
   return (
     <div className="h-screen bg-gradient-to-r from-pink-500 to-violet-500 flex justify-center items-center">
      <div className='fixed bottom-10 z-50 right-10'>
-      <Link href={'/pages/ConnectWord/addWord'}>
-     < IoMdAddCircleOutline className='text-5xl bg-blue-500 p-2 rounded-full'/>
+      <Link href={'/pages/AddWord'}>
+        <button>
+           < IoMdAddCircleOutline className='text-5xl bg-blue-500 p-2 rounded-full'/>
+        </button>
+    
       </Link>
      </div>
       <div className="bg-white p-8 rounded-lg text-center">

@@ -1,19 +1,23 @@
 'use client'
 import React, { useState, useRef } from 'react';
-import { getDatabase, ref, set } from 'firebase/database';
-import { database } from '@/firebase'; // Import Firebase database instance
+import { ref, set } from 'firebase/database';
+import { database } from '@/app/firebase/firebase';
 import 'react-notifications/lib/notifications.css';
 import { NotificationContainer, NotificationManager } from 'react-notifications';
 import { renderRandomNumbers } from '@/app/utils/randomUtils';
-import KeyboardEventHandler from 'react-keyboard-event-handler';
 
-function AddWord() {
+// Conditionally import KeyboardEventHandler for client-side only
+let KeyboardEventHandler;
+if (typeof window !== 'undefined') {
+  KeyboardEventHandler = require('react-keyboard-event-handler').default;
+}
+
+const AddWord = () => {
   const [word, setWord] = useState('');
   const [meaning, setMeaning] = useState('');
-  const [isKoreanKeyboard, setIsKoreanKeyboard] = useState(true);
 
-  const hanInputRef = useRef(null);
-  const vietInputRef = useRef(null);
+
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -25,19 +29,15 @@ function AddWord() {
   };
 
   const handleAddWord = () => {
-    const wordsRef = ref(database, '/vocabulary');
 
-    // Tạo đối tượng từ vựng mới
     const newWord = {
       word: word,
       meaning: meaning
     };
 
-    // Thêm từ vựng vào Firebase
     set(ref(database, 'vocabulary/' + renderRandomNumbers()), newWord)
       .then(() => {
         NotificationManager.success('Thêm từ vựng thành công', 'Thành công');
-        // Xóa nội dung trong input sau khi thêm thành công
         setWord('');
         setMeaning('');
       })
@@ -47,14 +47,11 @@ function AddWord() {
       });
   };
 
-  const toggleKeyboardLayout = () => {
-    setIsKoreanKeyboard((prevIsKoreanKeyboard) => !prevIsKoreanKeyboard);
-  };
 
   const handleHanInputKeyDown = (e) => {
     if (e.key === 'Enter') {
-      e.preventDefault(); // Prevent form submission
-      vietInputRef.current.focus(); // Focus on Vietnamese input field
+      e.preventDefault();
+      vietInputRef.current.focus();
     }
   };
 
@@ -70,8 +67,8 @@ function AddWord() {
             value={word}
             onChange={handleInputChange}
             onKeyDown={handleHanInputKeyDown}
-            ref={hanInputRef}
-            placeholder={isKoreanKeyboard ? 'Nhập từ tiếng Hàn' : 'Nhập từ tiếng Việt'}
+           
+            placeholder={ 'Nhập từ tiếng Hàn' }
             className="w-full border border-gray-300 px-3 py-2 text-gray-800 rounded-md mb-2"
           />
           <input
@@ -79,8 +76,8 @@ function AddWord() {
             name="meaning"
             value={meaning}
             onChange={handleInputChange}
-            ref={vietInputRef}
-            placeholder={isKoreanKeyboard ? 'Nhập nghĩa tiếng Việt' : 'Nhập nghĩa tiếng Hàn'}
+           
+            placeholder={'Nhập nghĩa tiếng Việt' }
             className="w-full border border-gray-300 px-3 py-2 text-gray-800 rounded-md"
           />
         </div>
@@ -90,13 +87,10 @@ function AddWord() {
         >
           Thêm từ vựng
         </button>
-        <KeyboardEventHandler
-          handleKeys={['shift+alt']}
-          onKeyEvent={toggleKeyboardLayout}
-        />
+        
       </div>
     </div>
   );
-}
+};
 
 export default AddWord;
