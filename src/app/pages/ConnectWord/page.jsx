@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import useFirebaseData from "@/app/hooks/useFirebaseData";
 import { IoMdAddCircleOutline } from "react-icons/io";
 import Link from "next/link";
-import FormDialog from "@/app/components/dialog";
+import FormDialog from "@/app/components/Dialog";
 const Game = () => {
   const { data } = useFirebaseData();
   const vocabulary = useMemo(() => {
