@@ -79,13 +79,13 @@ const Game = () => {
       if (firstLetterInput === lastLetterCurrent) {
         setMessage("Chính xác!");
         setScore(score + 2);
-
         const playerWordObj = {
           word: playerWord,
           meaning: getMeaning(playerWord),
         };
         setWordList([...wordList, playerWordObj]);
         setCurrentWordObj(playerWordObj);
+        setInputText("");
 
         setIsLoading(true);
         setTimeout(() => {
@@ -184,7 +184,7 @@ const Game = () => {
           <h1 className="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">
             {score}
           </h1>
-          {gameOver && (
+          {win && (
             <button
               className="bg-red-500 text-white px-4 py-2 rounded-md mt-4"
               onClick={startNewRound}
@@ -230,6 +230,7 @@ const Game = () => {
     setScore((prevScore) => prevScore + 2);
 
     // Reset thời gian còn lại
+    setInputText("");
     setTimeLeft(60);
     setMessage("Chính xác!");
     handleCloseDialog();
@@ -262,13 +263,13 @@ const Game = () => {
           <p className="text-gray-500 mt-2">AI đang suy nghĩ...</p>
         ) : (
           <p className="text-gray-600 mb-4">
-            Từ hiện tại: {currentWordObj.word} (
-            {getMeaning(currentWordObj.word)})
+            Từ hiện tại: <strong>{currentWordObj.word}</strong> - 
+              {getMeaning(currentWordObj.word)}
           </p>
         )}
         <h1 className="text-gray-800">
           {" "}
-          Bắt đầu bằng từ : {currentWordObj.word.slice(-1)}
+          Bắt đầu bằng từ : <strong>{currentWordObj.word.slice(-1)}</strong>
         </h1>
 
         <form onSubmit={handleSubmit}>
@@ -291,23 +292,19 @@ const Game = () => {
         {message && <p className="text-red-500 mt-2">{message}</p>}
         <p className="text-green-500 mt-4">Điểm số: {score}</p>
         <div className="mt-4">
-          <h2 className="text-xl font-bold mb-2">Danh sách các từ đã nối:</h2>
-          <ul className="list-disc list-inside">
-            {wordList.map((wordObj, index) => (
-              <li key={index} className="text-gray-700">
-                {wordObj.word} ({getMeaning(wordObj.word)})
-              </li>
-            ))}
-          </ul>
+          <h2 className="text-md font-bold mb-2 text-gray-800">
+            Danh sách các từ đã nối:
+          </h2>
+          <div className="h-24 overflow-y-auto">
+            <ul className="list-decimal list-inside pl-4 text-gray-600">
+              {wordList.map((wordObj) => (
+                <li key={wordObj.id} className="text-gray-700 text-sm ">
+                  <strong>{wordObj.word}</strong>: {getMeaning(wordObj.word)}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-        {gameOver && (
-          <button
-            className="bg-red-500 text-white px-4 py-2 rounded-md mt-4"
-            onClick={startNewRound}
-          >
-            Bắt đầu lại
-          </button>
-        )}
       </div>
     </div>
   );
