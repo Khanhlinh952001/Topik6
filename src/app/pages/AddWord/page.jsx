@@ -52,11 +52,12 @@ const AddWord = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 bg-gradient-to-r from-cyan-500 to-blue-500">
       <NotificationContainer />
       <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold mb-4">Thêm từ vựng mới</h2>
+        <h2 className="text-2xl font-bold mb-4 text-gray-800">Thêm từ vựng mới</h2>
         <div className="mb-4">
+        <label for="input-label" class="block text-sm font-medium mb-2 text-gray-800">Tiếng Hàn</label>
           <input
             type="text"
             name="word"
@@ -65,8 +66,9 @@ const AddWord = () => {
             onKeyDown={handleHanInputKeyDown}
            
             placeholder={ 'Nhập từ tiếng Hàn' }
-            className="w-full border border-gray-300 px-3 py-2 text-gray-800 rounded-md mb-2"
+            className="py-3 px-4 block w-full border-gray-200 rounded-lg text-sm border mb-2 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none  "
           />
+         <label for="input-label" class="block text-sm font-medium mb-2 text-gray-800">Nghĩa Tiếng Việt </label>
           <input
             type="text"
             name="meaning"
@@ -74,7 +76,7 @@ const AddWord = () => {
             onChange={handleInputChange}
            
             placeholder={'Nhập nghĩa tiếng Việt' }
-            className="w-full border border-gray-300 px-3 py-2 text-gray-800 rounded-md"
+            className="py-3 px-4 block w-full border-gray-200 rounded-lg text-sm border mb-2 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none  "
           />
         </div>
         <button

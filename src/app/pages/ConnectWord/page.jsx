@@ -235,7 +235,7 @@ const Game = () => {
     handleCloseDialog();
   };
   return (
-    <div className="h-screen bg-gradient-to-r from-pink-500 to-violet-500 flex justify-center items-center">
+    <div className="h-screen bg-gradient-to-r from-cyan-500 to-blue-500 flex justify-center items-center">
       <FormDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
