@@ -33,7 +33,7 @@ export default function Home() {
                 </h3>
               </Link>
                <Link href="/pages/ConnectWord">
-                <h3 className="text-gray-800 text-lg hover:bg-[#e5441a] hover:text-white px-3 py-1 h-8 mx-2 rounded">
+                <h3 className="text-gray-800 text-lg hover:bg-[#e5441a] fontSM hover:text-white px-3 py-1 h-8 mx-2 rounded">
                   Game
                 </h3>
               </Link>
