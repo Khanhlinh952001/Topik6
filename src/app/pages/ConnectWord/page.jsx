@@ -1,26 +1,32 @@
-'use client'
-import React, { useState, useEffect } from 'react';
-import useFirebaseData from '@/app/hooks/useFirebaseData';
+"use client";
+import React, { useState, useEffect, useMemo } from "react";
+import useFirebaseData from "@/app/hooks/useFirebaseData";
 import { IoMdAddCircleOutline } from "react-icons/io";
-import Link from 'next/link';
-import AddWord from '../AddWord/page';
+import Link from "next/link";
+import FormDialog from "@/app/components/dialog";
 const Game = () => {
   const { data } = useFirebaseData();
-  const vocabulary = data || []; // Ensure vocabulary is initialized with data or an empty array
+  const vocabulary = useMemo(() => {
+    return data ? Object.values(data) : [];
+  }, [data]);
+  const [notification, setNotification] = useState("");
+  console.log(notification);
 
   const [currentWordObj, setCurrentWordObj] = useState({});
-  const [inputText, setInputText] = useState('');
-  const [message, setMessage] = useState('');
+  const [inputText, setInputText] = useState("");
+  const [message, setMessage] = useState("");
   const [score, setScore] = useState(0);
   const [wordList, setWordList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [win, setWin] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(15);
-
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [dialogOpen, setDialogOpen] = useState(false);
   useEffect(() => {
+    console.log("Vocabulary:", vocabulary); // Debugging log
     if (vocabulary.length > 0) {
       const initialWord = getRandomWord();
+      console.log("Initial Word:", initialWord); // Debugging log
       setCurrentWordObj(initialWord);
       setWordList([initialWord]);
     }
@@ -28,7 +34,7 @@ const Game = () => {
 
   useEffect(() => {
     let timer;
-    if (timeLeft > 0 && !isLoading && !gameOver) {
+    if (timeLeft > 0 && !isLoading && !gameOver && !dialogOpen) {
       timer = setTimeout(() => {
         setTimeLeft((prevTime) => prevTime - 1);
       }, 1000);
@@ -37,7 +43,7 @@ const Game = () => {
     }
 
     return () => clearTimeout(timer);
-  }, [timeLeft, isLoading, gameOver]);
+  }, [timeLeft, isLoading, gameOver, dialogOpen]);
 
   const getRandomWord = () => {
     const randomIndex = Math.floor(Math.random() * vocabulary.length);
@@ -50,23 +56,34 @@ const Game = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setTimeLeft(10);
+    setTimeLeft(60);
 
     if (gameOver) {
-      setMessage('Hết giờ! Bắt đầu lượt mới...');
+      setMessage("Hết giờ! Bắt đầu lượt mới...");
       return startNewRound();
     }
 
     const playerWord = inputText.trim();
     if (playerWord) {
+      const wordExists = vocabulary.some((entry) => entry.word === playerWord);
+
+      if (!wordExists) {
+        setNotification("Từ bạn nhập không có trong từ vựng!");
+        setDialogOpen(true);
+        return;
+      }
+
       const lastLetterCurrent = getLastLetter(currentWordObj.word);
       const firstLetterInput = getFirstLetter(playerWord);
 
       if (firstLetterInput === lastLetterCurrent) {
-        setMessage('Chính xác!');
+        setMessage("Chính xác!");
         setScore(score + 2);
 
-        const playerWordObj = { word: playerWord, meaning: getMeaning(playerWord) };
+        const playerWordObj = {
+          word: playerWord,
+          meaning: getMeaning(playerWord),
+        };
         setWordList([...wordList, playerWordObj]);
         setCurrentWordObj(playerWordObj);
 
@@ -76,26 +93,27 @@ const Game = () => {
           if (aiWordObj) {
             setWordList((prevList) => [...prevList, aiWordObj]);
             setCurrentWordObj(aiWordObj);
-            setMessage('');
+            setMessage("");
           } else {
-            setMessage('AI không tìm thấy từ phù hợp!');
+            setMessage("AI không tìm thấy từ phù hợp!");
             setWin(true);
           }
           setIsLoading(false);
         }, 1000);
-
       } else {
-        setMessage(`Sai rồi! Hãy nhập từ bắt đầu bằng chữ "${lastLetterCurrent}"`);
+        setMessage(
+          `Sai rồi! Hãy nhập từ bắt đầu bằng chữ "${lastLetterCurrent}"`
+        );
       }
     } else {
-      setMessage('Hãy nhập ít nhất hai từ!');
+      setMessage("Hãy nhập ít nhất hai từ!");
     }
 
-    setInputText('');
+    setInputText("");
   };
 
   const handleTimeout = () => {
-    setMessage('Hết giờ! Bạn đã thua cuộc.');
+    setMessage("Hết giờ! Bạn đã thua cuộc.");
     setGameOver(true);
   };
 
@@ -116,7 +134,10 @@ const Game = () => {
 
     if (possibleWords.length > 0) {
       const randomIndex = Math.floor(Math.random() * possibleWords.length);
-      const aiWordObj = { ...possibleWords[randomIndex], meaning: possibleWords[randomIndex].meaning };
+      const aiWordObj = {
+        ...possibleWords[randomIndex],
+        meaning: possibleWords[randomIndex].meaning,
+      };
       return aiWordObj;
     }
 
@@ -125,7 +146,7 @@ const Game = () => {
 
   const getMeaning = (word) => {
     const foundWord = vocabulary.find((entry) => entry.word === word);
-    return foundWord ? foundWord.meaning : '';
+    return foundWord ? foundWord.meaning : "";
   };
 
   const startNewRound = () => {
@@ -133,7 +154,8 @@ const Game = () => {
     setCurrentWordObj(getRandomWord());
     setWordList([]);
     setScore(0);
-    setTimeLeft(10);
+    setTimeLeft(60);
+    setMessage("");
   };
 
   if (!currentWordObj.word) {
@@ -142,7 +164,10 @@ const Game = () => {
         <div className="bg-white p-8 rounded-lg text-center">
           <div className="relative flex justify-center items-center">
             <div className="absolute animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-purple-500"></div>
-            <img src="https://www.svgrepo.com/show/509001/avatar-thinking-9.svg" className="rounded-full h-28 w-28" />
+            <img
+              src="https://www.svgrepo.com/show/509001/avatar-thinking-9.svg"
+              className="rounded-full h-28 w-28"
+            />
           </div>
         </div>
       </div>
@@ -153,10 +178,17 @@ const Game = () => {
     return (
       <div className="h-screen bg-gradient-to-r from-pink-500 to-violet-500 flex justify-center items-center">
         <div className="bg-white p-8 rounded-lg text-center">
-          <h1 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">Bạn Đã Chiến Thắng </h1>
-          <h1 className="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">{score}</h1>
+          <h1 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">
+            Bạn Đã Chiến Thắng{" "}
+          </h1>
+          <h1 className="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">
+            {score}
+          </h1>
           {gameOver && (
-            <button className="bg-red-500 text-white px-4 py-2 rounded-md mt-4" onClick={startNewRound}>
+            <button
+              className="bg-red-500 text-white px-4 py-2 rounded-md mt-4"
+              onClick={startNewRound}
+            >
               Bắt đầu lại
             </button>
           )}
@@ -169,10 +201,17 @@ const Game = () => {
     return (
       <div className="h-screen bg-gradient-to-r from-pink-500 to-violet-500 flex justify-center items-center">
         <div className="bg-white p-8 rounded-lg text-center">
-          <h1 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">Bạn Đã Thua </h1>
-          <h1 className="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">{score}</h1>
+          <h1 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">
+            Bạn Đã Thua{" "}
+          </h1>
+          <h1 className="text-2xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">
+            {score}
+          </h1>
           {gameOver && (
-            <button className="bg-red-500 text-white px-4 py-2 rounded-md mt-4" onClick={startNewRound}>
+            <button
+              className="bg-red-500 text-white px-4 py-2 rounded-md mt-4"
+              onClick={startNewRound}
+            >
               Bắt đầu lại
             </button>
           )}
@@ -180,30 +219,57 @@ const Game = () => {
       </div>
     );
   }
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    // Cộng 2 điểm cho người dùng
+  };
 
+  const handleDialogSubmit = (newWordData) => {
+    // Xử lý dữ liệu từ dialog
+    console.log("Thêm từ mới:", newWordData);
+    setScore((prevScore) => prevScore + 2);
+
+    // Reset thời gian còn lại
+    setTimeLeft(60);
+    setMessage("Chính xác!");
+    handleCloseDialog();
+  };
   return (
     <div className="h-screen bg-gradient-to-r from-pink-500 to-violet-500 flex justify-center items-center">
-     <div className='fixed bottom-10 z-50 right-10'>
-      <Link href={'/pages/AddWord'}>
-        <button>
-           < IoMdAddCircleOutline className='text-5xl bg-blue-500 p-2 rounded-full'/>
-        </button>
-    
-      </Link>
-     </div>
+      <FormDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        onSubmit={handleDialogSubmit}
+        word={inputText} // Truyền từ cần thêm
+      />
+      <div className="fixed bottom-10 z-50 right-10">
+        <Link href={"/pages/AddWord"}>
+          <button>
+            <IoMdAddCircleOutline className="text-5xl bg-blue-500 p-2 rounded-full" />
+          </button>
+        </Link>
+      </div>
       <div className="bg-white p-8 rounded-lg text-center">
-        <h1 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">Game Nối Từ Tiếng Hàn</h1>
+        <h1 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">
+          Game Nối Từ Tiếng Hàn
+        </h1>
         <div className="text-gray-800 text-xl w-full flex justify-center">
-          <p className="bg-green-500  text-white px-2 py-1 rounded-full">{timeLeft}s</p>
+          <p className="bg-green-500 text-white px-2 py-1 rounded-full">
+            {timeLeft}s
+          </p>
         </div>
         {isLoading ? (
-          <p className="text-gray-500 mt-2 ">AI đang suy nghĩ...</p>
+          <p className="text-gray-500 mt-2">AI đang suy nghĩ...</p>
         ) : (
           <p className="text-gray-600 mb-4">
-            Từ hiện tại: {currentWordObj.word} ({getMeaning(currentWordObj.word)})
+            Từ hiện tại: {currentWordObj.word} (
+            {getMeaning(currentWordObj.word)})
           </p>
         )}
-        <h1 className="text-gray-800 "> Bắt đầu bằng từ : {currentWordObj.word.slice(-1)}</h1>
+        <h1 className="text-gray-800">
+          {" "}
+          Bắt đầu bằng từ : {currentWordObj.word.slice(-1)}
+        </h1>
 
         <form onSubmit={handleSubmit}>
           <input
@@ -214,7 +280,9 @@ const Game = () => {
           />
           <button
             type="submit"
-            className={`bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 ${gameOver ? 'bg-slate-800 text-black hover:bg-slate-800' : ''}`}
+            className={`bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 ${
+              gameOver ? "bg-slate-800 text-black hover:bg-slate-800" : ""
+            }`}
             disabled={isLoading || gameOver}
           >
             Đồng ý
@@ -233,7 +301,10 @@ const Game = () => {
           </ul>
         </div>
         {gameOver && (
-          <button className="bg-red-500 text-white px-4 py-2 rounded-md mt-4" onClick={startNewRound}>
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded-md mt-4"
+            onClick={startNewRound}
+          >
             Bắt đầu lại
           </button>
         )}
